@@ -16,6 +16,9 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
+  jwt:
+    secret: "clave-secreta-minimo-32-caracteres-para-hs256"
+    expiration: 86400000  # 24 horas en milisegundos
 
 eureka:
   client:
