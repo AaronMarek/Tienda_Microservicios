@@ -5,6 +5,7 @@ import com.tienda.users.dto.UserResponse;
 import com.tienda.users.entity.User;
 import com.tienda.users.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -14,6 +15,7 @@ import java.util.List;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public List<UserResponse> findAll() {
         return userRepository.findAll()
@@ -36,7 +38,7 @@ public class UserService {
         User user = new User();
         user.setNombre(dto.getNombre());
         user.setEmail(dto.getEmail());
-        user.setPassword(dto.getPassword());
+        user.setPassword(passwordEncoder.encode(dto.getPassword()));
 
         return UserResponse.from(userRepository.save(user));
     }
