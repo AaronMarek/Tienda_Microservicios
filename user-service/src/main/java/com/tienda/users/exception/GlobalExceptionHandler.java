@@ -13,8 +13,15 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiError> handleRuntime(RuntimeException ex) {
-        // Distinguimos not found de conflictos por el mensaje
-        HttpStatus status = ex.getMessage().contains("no encontrado") ? HttpStatus.NOT_FOUND : HttpStatus.CONFLICT;
+        HttpStatus status;
+
+        if (ex.getMessage().contains("no encontrado")) {
+            status = HttpStatus.NOT_FOUND;
+        } else if (ex.getMessage().contains("Credenciales")) {
+            status = HttpStatus.UNAUTHORIZED;
+        } else {
+            status = HttpStatus.CONFLICT;
+        }
 
         return ResponseEntity.status(status)
                 .body(new ApiError(status.value(), ex.getMessage(), LocalDateTime.now()));
