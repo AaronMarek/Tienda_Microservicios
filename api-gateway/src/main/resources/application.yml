@@ -21,6 +21,8 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/api/orders/**
+  jwt:
+    secret: "clave-secreta-minimo-32-caracteres-para-hs256"
 
 eureka:
   client:
