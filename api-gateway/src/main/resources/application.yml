@@ -7,6 +7,12 @@ spring:
   cloud:
     gateway:
       routes:
+        # Ruta pública: registro y login no necesitan token
+        - id: auth-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/auth/**
+
         - id: user-service
           uri: lb://user-service
           predicates:
@@ -21,10 +27,11 @@ spring:
           uri: lb://order-service
           predicates:
             - Path=/api/orders/**
-  jwt:
-    secret: "clave-secreta-minimo-32-caracteres-para-hs256"
 
 eureka:
   client:
     service-url:
       defaultZone: http://localhost:8761/eureka/
+
+jwt:
+  secret: "clave-secreta-minimo-32-caracteres-para-hs256"
