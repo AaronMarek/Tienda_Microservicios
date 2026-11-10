@@ -16,3 +16,9 @@ logging:
   level:
     com.netflix.eureka: WARN
     com.netflix.discovery: WARN
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
