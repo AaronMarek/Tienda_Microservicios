@@ -1,0 +1,99 @@
+services:
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: tienda-postgres
+    environment:
+      POSTGRES_USER: tienda
+      POSTGRES_PASSWORD: tienda123
+      # Docker crea esta base de datos automáticamente al arrancar
+      POSTGRES_DB: tienda_users
+    volumes:
+      # Los datos persisten aunque el contenedor se elimine
+      - postgres-data:/var/lib/postgresql/data
+      # Script que crea tienda_products y tienda_orders
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tienda -d tienda_users"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  eureka-server:
+    build: ./eureka-server
+    container_name: tienda-eureka
+    ports:
+      - "8761:8761"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health | grep UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: on-failure
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: tienda-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      # Sobreescribe eureka.client.service-url.defaultZone del application.yml
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: "clave-secreta-minimo-32-caracteres-para-hs256"
+    depends_on:
+      eureka-server:
+        condition: service_healthy
+    restart: on-failure
+
+  user-service:
+    build: ./user-service
+    container_name: tienda-users
+    ports:
+      - "8081:8081"
+    environment:
+      # "postgres" es el nombre del servicio de arriba, Docker lo resuelve como hostname
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tienda_users
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+      JWT_SECRET: "clave-secreta-minimo-32-caracteres-para-hs256"
+      JWT_EXPIRATION: 86400000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    restart: on-failure
+
+  product-service:
+    build: ./product-service
+    container_name: tienda-products
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tienda_products
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    restart: on-failure
+
+  order-service:
+    build: ./order-service
+    container_name: tienda-orders
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tienda_orders
+      EUREKA_CLIENT_SERVICEURL_DEFAULTZONE: http://eureka-server:8761/eureka/
+    depends_on:
+      postgres:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+    restart: on-failure
+
+volumes:
+  postgres-data:
