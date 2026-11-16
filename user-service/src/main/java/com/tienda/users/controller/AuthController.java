@@ -1,4 +1,4 @@
-package com.tienda.users.config;
+package com.tienda.users.controller;
 
 import com.tienda.users.dto.AuthRequest;
 import com.tienda.users.dto.AuthResponse;
