@@ -36,7 +36,7 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
-    void crear_guardaElUsuarioConLaPasswordEncriptada() {
+    void create_savesUserWithEncodedPassword() {
         when(userRepository.existsByEmail("aaron@test.com")).thenReturn(false);
         when(passwordEncoder.encode("123456")).thenReturn("hash-bcrypt");
         when(userRepository.save(any(User.class))).thenAnswer(inv -> {
@@ -46,36 +46,36 @@ class UserServiceTest {
             return u;
         });
 
-        UserResponse resultado = userService.create(peticion("aaron@test.com"));
+        UserResponse result = userService.create(request("aaron@test.com"));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
         assertThat(captor.getValue().getPassword()).isEqualTo("hash-bcrypt");
-        assertThat(resultado.getId()).isEqualTo(1L);
-        assertThat(resultado.getRol()).isEqualTo("USER");
+        assertThat(result.getId()).isEqualTo(1L);
+        assertThat(result.getRol()).isEqualTo("USER");
     }
 
     @Test
-    void crear_conEmailRepetido_lanzaConflicto() {
+    void create_withExistingEmail_throwsConflict() {
         when(userRepository.existsByEmail("aaron@test.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.create(peticion("aaron@test.com")))
+        assertThatThrownBy(() -> userService.create(request("aaron@test.com")))
                 .isInstanceOf(ConflictException.class);
 
         verify(userRepository, never()).save(any());
     }
 
     @Test
-    void buscarPorId_siExiste_devuelveElUsuario() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(usuario(1L, "aaron@test.com")));
+    void findById_whenUserExists_returnsUser() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "aaron@test.com")));
 
-        UserResponse resultado = userService.findById(1L);
+        UserResponse result = userService.findById(1L);
 
-        assertThat(resultado.getEmail()).isEqualTo("aaron@test.com");
+        assertThat(result.getEmail()).isEqualTo("aaron@test.com");
     }
 
     @Test
-    void buscarPorId_siNoExiste_lanzaNoEncontrado() {
+    void findById_whenUserDoesNotExist_throwsNotFound() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.findById(99L))
@@ -84,31 +84,31 @@ class UserServiceTest {
     }
 
     @Test
-    void actualizar_conElEmailDeOtroUsuario_lanzaConflicto() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(usuario(1L, "viejo@test.com")));
+    void update_withEmailFromAnotherUser_throwsConflict() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "viejo@test.com")));
         when(userRepository.existsByEmail("ocupado@test.com")).thenReturn(true);
 
-        assertThatThrownBy(() -> userService.update(1L, peticion("ocupado@test.com")))
+        assertThatThrownBy(() -> userService.update(1L, request("ocupado@test.com")))
                 .isInstanceOf(ConflictException.class);
 
         verify(userRepository, never()).save(any());
     }
 
     @Test
-    void actualizar_conElMismoEmail_noComprueba_duplicados() {
-        when(userRepository.findById(1L)).thenReturn(Optional.of(usuario(1L, "aaron@test.com")));
+    void update_withSameEmail_skipsDuplicateCheck() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "aaron@test.com")));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UserRequest dto = peticion("aaron@test.com");
+        UserRequest dto = request("aaron@test.com");
         dto.setNombre("Aaron Marek");
-        UserResponse resultado = userService.update(1L, dto);
+        UserResponse result = userService.update(1L, dto);
 
-        assertThat(resultado.getNombre()).isEqualTo("Aaron Marek");
+        assertThat(result.getNombre()).isEqualTo("Aaron Marek");
         verify(userRepository, never()).existsByEmail(any());
     }
 
     @Test
-    void eliminar_siNoExiste_lanzaNoEncontrado() {
+    void delete_whenUserDoesNotExist_throwsNotFound() {
         when(userRepository.existsById(99L)).thenReturn(false);
 
         assertThatThrownBy(() -> userService.delete(99L))
@@ -117,7 +117,7 @@ class UserServiceTest {
         verify(userRepository, never()).deleteById(any());
     }
 
-    private UserRequest peticion(String email) {
+    private UserRequest request(String email) {
         UserRequest dto = new UserRequest();
         dto.setNombre("Aaron");
         dto.setEmail(email);
@@ -125,7 +125,7 @@ class UserServiceTest {
         return dto;
     }
 
-    private User usuario(Long id, String email) {
+    private User user(Long id, String email) {
         User user = new User();
         user.setId(id);
         user.setNombre("Aaron");
